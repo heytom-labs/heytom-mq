@@ -1,6 +1,19 @@
 # Heytom.MQ.TestApi - 测试项目
 
-这是一个用于测试 Heytom.MQ 框架的 ASP.NET Core Web API 项目。
+这是一个用于测试 Heytom.MQ 框架的 ASP.NET Core Web API 项目，演示了基础消息发送和本地消息表的使用。
+
+## 功能特性
+
+### 1. 基础消息发送 (`/api/message`)
+- ✅ RabbitMQ 消息发送（单条/批量）
+- ✅ Kafka 消息发送（单条/批量）
+- ✅ 事件处理器自动消费
+
+### 2. 本地消息表 (`/api/order`)
+- ✅ 事务性消息发送
+- ✅ 订单创建与消息发送的原子性保证
+- ✅ 自动重试机制
+- ✅ 消息状态查询
 
 ## 前置条件
 
@@ -10,169 +23,238 @@
 # 使用 Docker 快速启动 RabbitMQ
 docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
 
-# 访问管理界面
-# http://localhost:15672
+# 访问管理界面: http://localhost:15672
 # 默认用户名/密码: guest/guest
 ```
 
-### 2. 启动 Kafka
+### 2. 启动 Kafka (可选)
 
 ```bash
-# 使用 Docker Compose 启动 Kafka
-# 创建 docker-compose.yml 文件
-version: '3'
-services:
-  zookeeper:
-    image: confluentinc/cp-zookeeper:latest
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    ports:
-      - "2181:2181"
-
-  kafka:
-    image: confluentinc/cp-kafka:latest
-    depends_on:
-      - zookeeper
-    ports:
-      - "9092:9092"
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-
-# 启动
-docker-compose up -d
+# 使用 Docker 启动 Kafka
+docker run -d --name kafka -p 9092:9092 \
+  -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092 \
+  apache/kafka:latest
 ```
 
 ## 运行项目
 
 ```bash
-cd Heytom.MQ.TestApi
+cd src/Heytom.MQ.TestApi
 dotnet run
 ```
 
-项目启动后访问 Swagger UI：http://localhost:5000/swagger
+项目启动后访问 Swagger UI: <http://localhost:5000>
 
-## 测试接口
+## API 接口说明
 
-### RabbitMQ 接口
+### 基础消息发送
 
-#### 1. 发送单个用户创建事件
+#### POST /api/message/rabbitmq/user
+发送用户创建事件到 RabbitMQ
 
-```bash
-POST http://localhost:5000/api/message/rabbitmq/user
-Content-Type: application/json
-
+```json
 {
   "name": "张三",
   "email": "zhangsan@example.com"
 }
 ```
 
-#### 2. 发送单个订单创建事件
+#### POST /api/message/rabbitmq/order
+发送订单创建事件到 RabbitMQ
 
-```bash
-POST http://localhost:5000/api/message/rabbitmq/order
-Content-Type: application/json
-
+```json
 {
-  "amount": 999.99,
+  "amount": 199.99,
   "customerName": "李四"
 }
 ```
 
-#### 3. 批量发送用户创建事件
+#### POST /api/message/kafka/product
+发送产品创建事件到 Kafka
 
-```bash
-POST http://localhost:5000/api/message/rabbitmq/user/batch
-Content-Type: application/json
-
-{
-  "count": 10,
-  "namePrefix": "TestUser"
-}
-```
-
-### Kafka 接口
-
-#### 4. 发送产品创建事件
-
-```bash
-POST http://localhost:5000/api/message/kafka/product
-Content-Type: application/json
-
+```json
 {
   "productName": "iPhone 15",
   "price": 5999.00
 }
 ```
 
-#### 5. 发送通知事件
+### 本地消息表（事务性消息）
 
-```bash
-POST http://localhost:5000/api/message/kafka/notification
-Content-Type: application/json
+#### POST /api/order
+创建订单（使用本地消息表）
 
+```json
 {
-  "userId": "user123",
-  "title": "系统通知",
-  "message": "您有新的订单",
-  "type": "Info"
+  "customerId": "CUST001",
+  "customerName": "王五",
+  "amount": 299.99
 }
 ```
 
-#### 6. 批量发送产品创建事件
+**工作流程：**
 
-```bash
-POST http://localhost:5000/api/message/kafka/product/batch
-Content-Type: application/json
+1. 开启数据库事务
+2. 保存订单到 `Orders` 表
+3. 保存消息到 `LocalMessages` 表
+4. 提交事务（确保订单和消息同时成功）
+5. 发送消息到 RabbitMQ
+6. 如果发送失败，后台服务会自动重试
 
+#### POST /api/order/batch
+批量创建订单
+
+```json
 {
-  "count": 10,
-  "productNamePrefix": "Product",
-  "basePrice": 100.00
+  "count": 5,
+  "customerNamePrefix": "客户",
+  "baseAmount": 100.00
 }
 ```
+
+#### GET /api/order
+获取所有订单
+
+#### GET /api/order/{orderId}
+获取订单详情
+
+#### GET /api/order/local-messages
+查看本地消息表
+
+**消息状态：**
+
+- `0`: 待发送
+- `1`: 已发送
+- `2`: 发送失败（会继续重试）
+
+## 数据库
+
+项目使用 SQLite 作为示例数据库，数据文件：`heytom_mq_test.db`
+
+### 表结构
+
+**Orders 表：**
+
+```sql
+CREATE TABLE Orders (
+    Id TEXT PRIMARY KEY,
+    CustomerId TEXT NOT NULL,
+    CustomerName TEXT NOT NULL,
+    Amount REAL NOT NULL,
+    Status TEXT NOT NULL DEFAULT 'Pending',
+    CreatedAt TEXT NOT NULL
+);
+```
+
+**LocalMessages 表：**
+
+```sql
+CREATE TABLE LocalMessages (
+    Id TEXT PRIMARY KEY,
+    MQType TEXT NOT NULL,
+    Topic TEXT NOT NULL,
+    RoutingKey TEXT,
+    MessageType TEXT NOT NULL,
+    MessageBody TEXT NOT NULL,
+    Status INTEGER NOT NULL DEFAULT 0,
+    CreatedAt TEXT NOT NULL,
+    UpdatedAt TEXT,
+    RetryCount INTEGER NOT NULL DEFAULT 0,
+    ErrorMessage TEXT
+);
+```
+
+## 配置说明
+
+### appsettings.json
+
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Data Source=heytom_mq_test.db"
+  }
+}
+```
+
+### Program.cs 配置
+
+```csharp
+// 配置 RabbitMQ（支持本地消息表）
+builder.Services.AddRabbitMQ(options =>
+{
+    options.ConnectionString = "amqp://guest:guest@localhost:5672";
+    options.Exchange = "heytom.test.exchange";
+    options.LocalMessageTableName = "LocalMessages";
+});
+
+// 配置本地消息重试服务
+builder.Services.AddLocalMessageRetryService(options =>
+{
+    options.Enabled = true;
+    options.ScanInterval = TimeSpan.FromSeconds(30);
+    options.BatchSize = 100;
+    options.MaxRetryCount = 5;
+    options.TableName = "LocalMessages";
+    
+    options.DbConnectionFactory = serviceProvider =>
+    {
+        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+        var connectionString = configuration.GetConnectionString("DefaultConnection")!;
+        return new SqliteConnection(connectionString);
+    };
+});
+```
+
+## 测试场景
+
+### 场景 1: 正常流程
+
+1. 调用 `POST /api/order` 创建订单
+2. 订单和消息同时保存成功
+3. 消息立即发送到 RabbitMQ
+4. 查看 `GET /api/order/local-messages`，消息状态为 `1`（已发送）
+
+### 场景 2: MQ 发送失败
+
+1. 停止 RabbitMQ 服务
+2. 调用 `POST /api/order` 创建订单
+3. 订单保存成功，消息保存到本地表
+4. 消息发送失败，状态为 `0`（待发送）
+5. 启动 RabbitMQ 服务
+6. 等待 30 秒，后台服务自动重试
+7. 查看消息状态变为 `1`（已发送）
+
+### 场景 3: 批量操作
+
+1. 调用 `POST /api/order/batch` 批量创建订单
+2. 所有订单和消息在同一个事务中提交
+3. 确保全部成功或全部失败
 
 ## 查看效果
 
 ### 1. 控制台日志
 
 发送消息后，查看控制台日志，可以看到：
+
 - `[RabbitMQ]` 标记的 RabbitMQ 消息发送和处理日志
 - `[Kafka]` 标记的 Kafka 消息发送和处理日志
 - EventId、时间戳等信息
 
 ### 2. RabbitMQ 管理界面
 
-访问 http://localhost:15672 (guest/guest)：
+访问 <http://localhost:15672> (guest/guest)：
+
 - Exchange: `heytom.test.exchange`
 - Queues: `heytom.queue.user.created`, `heytom.queue.order.created`
 - 消息流转情况
 
-### 3. Kafka 监控
-
-可以使用 Kafka 命令行工具查看：
-
-```bash
-# 查看所有 Topic
-docker exec -it <kafka-container-id> kafka-topics --list --bootstrap-server localhost:9092
-
-# 查看消费者组
-docker exec -it <kafka-container-id> kafka-consumer-groups --list --bootstrap-server localhost:9092
-
-# 查看消费者组详情
-docker exec -it <kafka-container-id> kafka-consumer-groups --describe --group heytom-test-group --bootstrap-server localhost:9092
-```
-
 ## 项目结构
 
-```
+```text
 Heytom.MQ.TestApi/
 ├── Controllers/
-│   └── MessageController.cs              # API 控制器
+│   ├── MessageController.cs              # 基础消息发送 API
+│   └── OrderController.cs                # 本地消息表示例 API
 ├── Events/
 │   ├── UserCreatedEvent.cs               # 用户创建事件 (RabbitMQ)
 │   ├── OrderCreatedEvent.cs              # 订单创建事件 (RabbitMQ)
@@ -183,13 +265,65 @@ Heytom.MQ.TestApi/
 │   ├── OrderCreatedEventHandler.cs       # 订单事件处理器
 │   ├── ProductCreatedEventHandler.cs     # 产品事件处理器
 │   └── NotificationEventHandler.cs       # 通知事件处理器
+├── Services/
+│   ├── DatabaseInitializer.cs            # 数据库初始化
+│   └── OrderService.cs                   # 订单服务（本地消息表示例）
 └── Program.cs                            # 启动配置
 ```
 
-## 注意事项
+## 故障排查
 
-- 确保 RabbitMQ 和 Kafka 服务都在运行
-- RabbitMQ 默认连接：`amqp://guest:guest@localhost:5672`
-- Kafka 默认连接：`localhost:9092`
-- 如需修改连接配置，请编辑 `Program.cs` 中的配置
-- 项目同时支持两种 MQ，可以对比测试不同场景下的表现
+### 问题 1: RabbitMQ 连接失败
+
+- 确认 RabbitMQ 服务已启动
+- 检查连接字符串是否正确
+- 查看日志中的错误信息
+
+### 问题 2: 消息未被消费
+
+- 确认事件处理器已注册
+- 检查 RabbitMQ 管理界面的队列状态
+- 查看应用程序日志
+
+### 问题 3: 本地消息表重试不工作
+
+- 确认 `LocalMessageRetryService` 已启用
+- 检查 `DbConnectionFactory` 配置是否正确
+- 查看后台服务日志
+
+## 扩展示例
+
+### 使用其他数据库
+
+**SQL Server:**
+
+```csharp
+builder.Services.AddScoped<IDbConnection>(_ => 
+    new SqlConnection(connectionString));
+
+options.DbConnectionFactory = serviceProvider =>
+{
+    var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+    var connectionString = configuration.GetConnectionString("DefaultConnection")!;
+    return new SqlConnection(connectionString);
+};
+```
+
+**MySQL:**
+
+```csharp
+builder.Services.AddScoped<IDbConnection>(_ => 
+    new MySqlConnection(connectionString));
+
+options.DbConnectionFactory = serviceProvider =>
+{
+    var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+    var connectionString = configuration.GetConnectionString("DefaultConnection")!;
+    return new MySqlConnection(connectionString);
+};
+```
+
+## 相关文档
+
+- [主文档](../../README.md)
+- [本地消息表使用指南](../../LOCAL_MESSAGE_TABLE_USAGE.md)

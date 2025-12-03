@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+using System.Data;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -45,14 +45,50 @@ public class LocalMessageRetryService : BackgroundService
         _logger.LogInformation("本地消息重试服务已停止");
     }
 
+    /// <summary>
+    /// 根据类型名称获取类型（支持跨程序集）
+    /// </summary>
+    private static Type? GetTypeFromName(string typeName)
+    {
+        // 首先尝试直接获取（如果包含程序集信息）
+        var type = Type.GetType(typeName);
+        if (type != null)
+        {
+            return type;
+        }
+
+        // 如果失败，遍历所有已加载的程序集查找
+        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            type = assembly.GetType(typeName);
+            if (type != null)
+            {
+                return type;
+            }
+        }
+
+        return null;
+    }
+
     private async Task ProcessPendingMessagesAsync(CancellationToken cancellationToken)
     {
         using var scope = _serviceProvider.CreateScope();
-        var dbContext = scope.ServiceProvider.GetService<DbContext>();
-        
-        if (dbContext == null)
+
+        // 使用工厂函数创建数据库连接
+        IDbConnection? dbConnection = null;
+        if (_options.DbConnectionFactory != null)
         {
-            _logger.LogWarning("未找到 DbContext，跳过本次扫描");
+            dbConnection = _options.DbConnectionFactory(scope.ServiceProvider);
+        }
+        else
+        {
+            // 尝试从 DI 容器获取（向后兼容）
+            dbConnection = scope.ServiceProvider.GetService<IDbConnection>();
+        }
+
+        if (dbConnection == null)
+        {
+            _logger.LogWarning("未找到 IDbConnection，请在 LocalMessageRetryOptions 中配置 DbConnectionFactory 或在 DI 容器中注册 IDbConnection");
             return;
         }
 
@@ -69,8 +105,8 @@ public class LocalMessageRetryService : BackgroundService
         {
             // 获取待发送的消息
             var pendingMessages = await repository.GetPendingMessagesAsync(
-                dbContext, 
-                _options.BatchSize, 
+                dbConnection,
+                _options.BatchSize,
                 cancellationToken);
 
             if (pendingMessages.Count == 0)
@@ -94,7 +130,7 @@ public class LocalMessageRetryService : BackgroundService
 
                 try
                 {
-                    await RetryMessageAsync(producer, repository, dbContext, message, cancellationToken);
+                    await RetryMessageAsync(producer, repository, dbConnection, message, cancellationToken);
                 }
                 catch (Exception ex)
                 {
@@ -106,11 +142,11 @@ public class LocalMessageRetryService : BackgroundService
 
                     // 更新状态为发送失败
                     await repository.UpdateStatusAsync(
-                        dbContext,
-                        message.Id,
-                        2, // 发送失败
-                        ex.Message,
-                        cancellationToken);
+                            dbConnection,
+                            message.Id,
+                            2, // 发送失败
+                            ex.Message,
+                            cancellationToken);
                 }
             }
         }
@@ -123,7 +159,7 @@ public class LocalMessageRetryService : BackgroundService
     private async Task RetryMessageAsync(
         IMessageProducer producer,
         ILocalMessageRepository repository,
-        DbContext dbContext,
+        IDbConnection dbConnection,
         LocalMessage message,
         CancellationToken cancellationToken)
     {
@@ -136,7 +172,7 @@ public class LocalMessageRetryService : BackgroundService
 
         // 这里需要根据 MessageType 反序列化消息
         // 由于泛型限制，这里使用反射来调用 SendAsync 方法
-        var messageType = Type.GetType(message.MessageType);
+        var messageType = GetTypeFromName(message.MessageType);
         if (messageType == null)
         {
             throw new InvalidOperationException($"无法找到消息类型: {message.MessageType}");
@@ -163,7 +199,7 @@ public class LocalMessageRetryService : BackgroundService
 
         var sendTask = (Task?)sendAsyncMethod.Invoke(
             producer,
-            new object[] { deserializedMessage, cancellationToken });
+            [deserializedMessage, cancellationToken]);
 
         if (sendTask != null)
         {
@@ -172,11 +208,11 @@ public class LocalMessageRetryService : BackgroundService
 
         // 更新状态为已发送
         await repository.UpdateStatusAsync(
-            dbContext,
-            message.Id,
-            1, // 已发送
-            null,
-            cancellationToken);
+               dbConnection,
+               message.Id,
+               1, // 已发送
+               null,
+               cancellationToken);
 
         _logger.LogInformation("消息 {MessageId} 重试发送成功", message.Id);
     }

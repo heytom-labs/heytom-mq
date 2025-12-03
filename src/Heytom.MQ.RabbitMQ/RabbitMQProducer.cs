@@ -1,7 +1,8 @@
+using System.Data;
+using System.Data.Common;
 using System.Text;
 using System.Text.Json;
 using Heytom.MQ.Abstractions;
-using Microsoft.EntityFrameworkCore;
 using RabbitMQ.Client;
 
 namespace Heytom.MQ.RabbitMQ;
@@ -15,7 +16,7 @@ public class RabbitMQProducer : IMessageProducer, IDisposable
     private readonly IConnection _connection;
     private readonly IModel _channel;
     private readonly HashSet<string> _declaredExchanges = [];
-    private readonly ILocalMessageRepository _localMessageRepository;
+    private readonly LocalMessageRepository _localMessageRepository;
 
     public RabbitMQProducer(RabbitMQOptions options)
     {
@@ -61,79 +62,138 @@ public class RabbitMQProducer : IMessageProducer, IDisposable
         }
     }
 
-    public async Task SendWithTransactionAsync<T>(DbContext dbContext, Func<Task<T>> messageFunc, CancellationToken cancellationToken = default) where T : class, IEvent
+    public async Task SendWithTransactionAsync<T>(IDbConnection dbConnection, Func<IDbTransaction, Task<T>> messageFunc, CancellationToken cancellationToken = default) where T : class, IEvent
     {
-        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+        if (dbConnection.State != System.Data.ConnectionState.Open)
+        {
+            dbConnection.Open();
+        }
+
+        using var transaction = dbConnection.BeginTransaction();
+        Guid messageId;
+        T message;
+
         try
         {
             // 执行业务逻辑并获取消息
-            var message = await messageFunc();
+            message = await messageFunc(transaction);
 
-            // 将消息保存到本地消息表
-            await SaveMessageToLocalTable(dbContext, message, cancellationToken);
+            // 将消息保存到本地消息表，并获取消息ID
+            messageId = await SaveMessageToLocalTable(transaction, message, cancellationToken);
 
             // 提交事务
-            await dbContext.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
-
-            // 发送消息到 RabbitMQ
-            await SendAsync(message, cancellationToken);
+            transaction.Commit();
         }
         catch
         {
-            await transaction.RollbackAsync(cancellationToken);
+            transaction.Rollback();
             throw;
+        }
+
+        // 事务提交后，发送消息到 RabbitMQ
+        try
+        {
+            await SendAsync(message, cancellationToken);
+
+            // 发送成功，更新消息状态为已发送
+            await UpdateMessageStatusToSent(dbConnection, messageId, cancellationToken);
+        }
+        catch
+        {
+            // 发送失败，消息保持待发送状态（Status=0），后台服务会重试
+            // 不抛出异常，因为业务数据已经保存成功
         }
     }
 
-    public async Task SendBatchWithTransactionAsync<T>(DbContext dbContext, Func<Task<IEnumerable<T>>> messageFunc, CancellationToken cancellationToken = default) where T : class, IEvent
+    public async Task SendBatchWithTransactionAsync<T>(IDbConnection dbConnection, Func<IDbTransaction, Task<IEnumerable<T>>> messageFunc, CancellationToken cancellationToken = default) where T : class, IEvent
     {
-        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+        if (dbConnection.State != System.Data.ConnectionState.Open)
+        {
+            dbConnection.Open();
+        }
+
+        using var transaction = dbConnection.BeginTransaction();
+        var messageIds = new List<Guid>();
+        IEnumerable<T> messages;
+
         try
         {
             // 执行业务逻辑并获取消息集合
-            var messages = await messageFunc();
+            messages = await messageFunc(transaction);
 
             // 将消息批量保存到本地消息表
             foreach (var message in messages)
             {
-                await SaveMessageToLocalTable(dbContext, message, cancellationToken);
+                var messageId = await SaveMessageToLocalTable(transaction, message, cancellationToken);
+                messageIds.Add(messageId);
             }
 
             // 提交事务
-            await dbContext.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
-
-            // 批量发送消息到 RabbitMQ
-            await SendBatchAsync(messages, cancellationToken);
+            transaction.Commit();
         }
         catch
         {
-            await transaction.RollbackAsync(cancellationToken);
+            transaction.Rollback();
             throw;
+        }
+
+        // 事务提交后，批量发送消息到 RabbitMQ
+        try
+        {
+            await SendBatchAsync(messages, cancellationToken);
+
+            // 发送成功，批量更新消息状态为已发送
+            foreach (var messageId in messageIds)
+            {
+                await UpdateMessageStatusToSent(dbConnection, messageId, cancellationToken);
+            }
+        }
+        catch
+        {
+            // 发送失败，消息保持待发送状态（Status=0），后台服务会重试
+            // 不抛出异常，因为业务数据已经保存成功
         }
     }
 
-    private async Task SaveMessageToLocalTable<T>(DbContext dbContext, T message, CancellationToken cancellationToken) where T : class, IEvent
+    private async Task<Guid> SaveMessageToLocalTable<T>(IDbTransaction transaction, T message, CancellationToken cancellationToken) where T : class, IEvent
     {
         var attribute = RabbitMQTopicHelper.GetTopicAttribute<T>();
         var exchange = attribute.Exchange ?? _options.Exchange;
         var routingKey = attribute.RoutingKey;
 
+        var messageId = Guid.NewGuid();
         var localMessage = new LocalMessage
         {
-            Id = Guid.NewGuid(),
+            Id = messageId,
             MQType = "RabbitMQ",
             Topic = exchange,
             RoutingKey = routingKey,
-            MessageType = typeof(T).FullName ?? string.Empty,
+            MessageType = typeof(T).AssemblyQualifiedName ?? typeof(T).FullName ?? string.Empty,
             MessageBody = JsonSerializer.Serialize(message),
             Status = 0, // 0: 待发送
             CreatedAt = DateTime.UtcNow,
             RetryCount = 0
         };
 
-        await _localMessageRepository.SaveAsync(dbContext, localMessage, cancellationToken);
+        await _localMessageRepository.SaveAsync(transaction, localMessage, cancellationToken);
+        return messageId;
+    }
+
+    private async Task UpdateMessageStatusToSent(IDbConnection dbConnection, Guid messageId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _localMessageRepository.UpdateStatusAsync(
+                dbConnection,
+                messageId,
+                1, // 1: 已发送
+                null,
+                cancellationToken);
+        }
+        catch
+        {
+            // 更新状态失败不影响主流程，后台服务会处理
+        }
     }
 
     private void EnsureExchangeDeclared(string exchange, string exchangeType, bool durable, bool autoDelete)

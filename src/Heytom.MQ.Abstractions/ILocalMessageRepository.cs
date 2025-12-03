@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+using System.Data;
 
 namespace Heytom.MQ.Abstractions;
 
@@ -10,20 +10,20 @@ public interface ILocalMessageRepository
     /// <summary>
     /// 保存消息到本地表
     /// </summary>
-    Task SaveAsync(DbContext dbContext, LocalMessage message, CancellationToken cancellationToken = default);
+    Task SaveAsync(IDbTransaction transaction, LocalMessage message, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// 批量保存消息到本地表
     /// </summary>
-    Task SaveBatchAsync(DbContext dbContext, IEnumerable<LocalMessage> messages, CancellationToken cancellationToken = default);
+    Task SaveBatchAsync(IDbTransaction transaction, IEnumerable<LocalMessage> messages, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// 更新消息状态
+    /// 更新消息状态（不使用事务）
     /// </summary>
-    Task UpdateStatusAsync(DbContext dbContext, Guid messageId, int status, string? errorMessage = null, CancellationToken cancellationToken = default);
+    Task UpdateStatusAsync(IDbConnection connection, Guid messageId, int status, string? errorMessage = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// 获取待发送的消息
     /// </summary>
-    Task<List<LocalMessage>> GetPendingMessagesAsync(DbContext dbContext, int batchSize = 100, CancellationToken cancellationToken = default);
+    Task<List<LocalMessage>> GetPendingMessagesAsync(IDbConnection connection, int batchSize = 100, CancellationToken cancellationToken = default);
 }

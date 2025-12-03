@@ -269,14 +269,21 @@ await consumer.SubscribeAsync<UserCreatedEvent, UserCreatedEventHandler>();
 
 ## 本地消息表（事务性消息）
 
-框架支持本地消息表功能，确保业务操作和消息发送的事务一致性。消息会先保存到本地数据库，然后异步发送到消息队列。
+框架支持本地消息表模式，解决分布式事务中的消息可靠性问题。通过将消息先保存到本地数据库表中，与业务操作在同一个事务中提交，确保消息不会丢失。
+
+### 核心特性
+
+- ✅ **事务一致性**：业务数据和消息在同一事务中提交，保证原子性
+- ✅ **自动重试**：后台服务定期扫描待发送消息，自动重试失败的消息
+- ✅ **状态追踪**：实时查看消息状态（待发送、已发送、发送失败）
+- ✅ **数据库无关**：支持任何 ADO.NET 兼容的数据库
+- ✅ **高性能**：使用原生 SQL 操作，避免 EF Core 依赖
 
 ### 快速开始
 
-**1. 创建本地消息表**
+#### 1. 创建本地消息表
 
-执行 SQL 脚本（位于 `src/Heytom.MQ.Abstractions/LocalMessageTable.sql`）：
-
+**SQL Server:**
 ```sql
 CREATE TABLE LocalMessages (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
@@ -292,66 +299,341 @@ CREATE TABLE LocalMessages (
     ErrorMessage NVARCHAR(MAX) NULL
 );
 
-CREATE INDEX IX_LocalMessages_Status_CreatedAt ON LocalMessages(Status, CreatedAt);
+CREATE INDEX IX_LocalMessages_Status ON LocalMessages(Status);
+CREATE INDEX IX_LocalMessages_CreatedAt ON LocalMessages(CreatedAt);
 ```
 
-**2. 配置自定义表名（可选）**
+**MySQL:**
+```sql
+CREATE TABLE LocalMessages (
+    Id CHAR(36) PRIMARY KEY,
+    MQType VARCHAR(50) NOT NULL,
+    Topic VARCHAR(200) NOT NULL,
+    RoutingKey VARCHAR(200),
+    MessageType VARCHAR(500) NOT NULL,
+    MessageBody TEXT NOT NULL,
+    Status INT NOT NULL DEFAULT 0,
+    CreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt DATETIME,
+    RetryCount INT NOT NULL DEFAULT 0,
+    ErrorMessage TEXT
+);
+
+CREATE INDEX IX_LocalMessages_Status ON LocalMessages(Status);
+CREATE INDEX IX_LocalMessages_CreatedAt ON LocalMessages(CreatedAt);
+```
+
+**PostgreSQL:**
+```sql
+CREATE TABLE LocalMessages (
+    Id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    MQType VARCHAR(50) NOT NULL,
+    Topic VARCHAR(200) NOT NULL,
+    RoutingKey VARCHAR(200),
+    MessageType VARCHAR(500) NOT NULL,
+    MessageBody TEXT NOT NULL,
+    Status INT NOT NULL DEFAULT 0,
+    CreatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP,
+    RetryCount INT NOT NULL DEFAULT 0,
+    ErrorMessage TEXT
+);
+
+CREATE INDEX IX_LocalMessages_Status ON LocalMessages(Status);
+CREATE INDEX IX_LocalMessages_CreatedAt ON LocalMessages(CreatedAt);
+```
+
+**SQLite:**
+```sql
+CREATE TABLE LocalMessages (
+    Id TEXT PRIMARY KEY,
+    MQType TEXT NOT NULL,
+    Topic TEXT NOT NULL,
+    RoutingKey TEXT,
+    MessageType TEXT NOT NULL,
+    MessageBody TEXT NOT NULL,
+    Status INTEGER NOT NULL DEFAULT 0,
+    CreatedAt TEXT NOT NULL,
+    UpdatedAt TEXT,
+    RetryCount INTEGER NOT NULL DEFAULT 0,
+    ErrorMessage TEXT
+);
+
+CREATE INDEX IX_LocalMessages_Status ON LocalMessages(Status);
+CREATE INDEX IX_LocalMessages_CreatedAt ON LocalMessages(CreatedAt);
+```
+
+#### 2. 配置服务
 
 ```csharp
+using System.Data.SqlClient;
+using Heytom.MQ.Abstractions;
+using Heytom.MQ.DependencyInjection;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// 配置数据库连接
+builder.Services.AddScoped<IDbConnection>(_ => 
+    new SqlConnection(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// 配置 RabbitMQ（支持本地消息表）
 builder.Services.AddRabbitMQ(options =>
 {
-    options.ConnectionString = "amqp://localhost";
+    options.ConnectionString = "amqp://guest:guest@localhost:5672";
     options.Exchange = "my-exchange";
-    options.LocalMessageTableName = "MyCustomMessageTable";  // 自定义表名
+    options.LocalMessageTableName = "LocalMessages";  // 配置表名
+});
+
+// 配置本地消息重试服务
+builder.Services.AddLocalMessageRetryService(options =>
+{
+    options.Enabled = true;
+    options.ScanInterval = TimeSpan.FromSeconds(30);  // 每30秒扫描一次
+    options.BatchSize = 100;                          // 每次处理100条消息
+    options.MaxRetryCount = 5;                        // 最多重试5次
+    options.TableName = "LocalMessages";
+    
+    // 配置数据库连接工厂
+    options.DbConnectionFactory = serviceProvider =>
+    {
+        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+        var connectionString = configuration.GetConnectionString("DefaultConnection")!;
+        return new SqlConnection(connectionString);
+    };
 });
 ```
 
-**3. 使用事务发送消息**
+#### 3. 使用事务发送消息
 
 ```csharp
+using System.Data;
+using Dapper;
+using Heytom.MQ.Abstractions;
+
 public class OrderService
 {
-    private readonly ApplicationDbContext _dbContext;
+    private readonly IDbConnection _dbConnection;
     private readonly IMessageProducer _producer;
+    private readonly ILogger<OrderService> _logger;
 
-    public async Task CreateOrderAsync(CreateOrderRequest request)
+    public OrderService(
+        IDbConnection dbConnection,
+        IMessageProducer producer,
+        ILogger<OrderService> logger)
     {
+        _dbConnection = dbConnection;
+        _producer = producer;
+        _logger = logger;
+    }
+
+    /// <summary>
+    /// 创建订单（使用本地消息表确保事务一致性）
+    /// </summary>
+    public async Task<string> CreateOrderAsync(CreateOrderRequest request)
+    {
+        _logger.LogInformation("开始创建订单");
+
+        string orderId = string.Empty;
+
         // 在事务中发送消息
-        await _producer.SendWithTransactionAsync(_dbContext, async () =>
+        await _producer.SendWithTransactionAsync(_dbConnection, async (transaction) =>
         {
-            // 执行业务逻辑
-            var order = new Order
-            {
-                Id = Guid.NewGuid(),
-                CustomerId = request.CustomerId,
-                Amount = request.Amount
-            };
-            
-            _dbContext.Orders.Add(order);
-            await _dbContext.SaveChangesAsync();
-            
-            // 返回要发送的消息
+            // 1. 生成订单ID
+            orderId = Guid.NewGuid().ToString();
+
+            // 2. 保存订单到数据库（在事务中）
+            await _dbConnection.ExecuteAsync(
+                @"INSERT INTO Orders (Id, CustomerId, CustomerName, Amount, Status, CreatedAt) 
+                  VALUES (@Id, @CustomerId, @CustomerName, @Amount, @Status, @CreatedAt)",
+                new
+                {
+                    Id = orderId,
+                    CustomerId = request.CustomerId,
+                    CustomerName = request.CustomerName,
+                    Amount = request.Amount,
+                    Status = "Pending",
+                    CreatedAt = DateTime.UtcNow
+                },
+                transaction);
+
+            _logger.LogInformation("订单已保存 - OrderId: {OrderId}", orderId);
+
+            // 3. 返回要发送的消息
             return new OrderCreatedEvent
             {
-                OrderId = order.Id,
-                Amount = order.Amount
+                OrderId = orderId,
+                CustomerName = request.CustomerName,
+                Amount = request.Amount
             };
         });
+
+        _logger.LogInformation("订单创建完成 - OrderId: {OrderId}", orderId);
+        return orderId;
+    }
+
+    /// <summary>
+    /// 批量创建订单
+    /// </summary>
+    public async Task<List<string>> CreateOrdersBatchAsync(List<CreateOrderRequest> requests)
+    {
+        var orderIds = new List<string>();
+
+        await _producer.SendBatchWithTransactionAsync<OrderCreatedEvent>(
+            _dbConnection, 
+            async (transaction) =>
+        {
+            var events = new List<OrderCreatedEvent>();
+
+            foreach (var request in requests)
+            {
+                var orderId = Guid.NewGuid().ToString();
+                orderIds.Add(orderId);
+
+                // 保存订单
+                await _dbConnection.ExecuteAsync(
+                    @"INSERT INTO Orders (Id, CustomerId, CustomerName, Amount, Status, CreatedAt) 
+                      VALUES (@Id, @CustomerId, @CustomerName, @Amount, @Status, @CreatedAt)",
+                    new
+                    {
+                        Id = orderId,
+                        CustomerId = request.CustomerId,
+                        CustomerName = request.CustomerName,
+                        Amount = request.Amount,
+                        Status = "Pending",
+                        CreatedAt = DateTime.UtcNow
+                    },
+                    transaction);
+
+                // 添加事件
+                events.Add(new OrderCreatedEvent
+                {
+                    OrderId = orderId,
+                    CustomerName = request.CustomerName,
+                    Amount = request.Amount
+                });
+            }
+
+            return events;
+        });
+
+        return orderIds;
     }
 }
 ```
 
-**工作流程：**
-1. 开启数据库事务
-2. 执行业务逻辑（如保存订单）
-3. 保存消息到本地消息表
-4. 提交事务（确保业务数据和消息记录一致性）
-5. 发送消息到 MQ
-6. 如果发送失败，消息已在本地表中，可通过重试机制处理
+### 工作流程
 
-**详细文档：**
-- [使用指南](LOCAL_MESSAGE_TABLE_USAGE.md)
-- [架构说明](LOCAL_MESSAGE_TABLE_ARCHITECTURE.md)
+```mermaid
+sequenceDiagram
+    participant App as 应用程序
+    participant DB as 数据库
+    participant LocalMsg as 本地消息表
+    participant MQ as 消息队列
+    participant BgService as 后台服务
+
+    App->>DB: 1. 开启事务
+    App->>DB: 2. 保存业务数据
+    App->>LocalMsg: 3. 保存消息(Status=0)
+    App->>DB: 4. 提交事务
+    
+    alt 发送成功
+        App->>MQ: 5. 发送消息
+        App->>LocalMsg: 6. 更新状态(Status=1)
+    else 发送失败
+        App->>LocalMsg: 消息保持Status=0
+        BgService->>LocalMsg: 7. 定期扫描Status=0
+        BgService->>MQ: 8. 重试发送
+        BgService->>LocalMsg: 9. 更新状态
+    end
+```
+
+**详细步骤：**
+
+1. **开启数据库事务**：确保后续操作的原子性
+2. **执行业务逻辑**：保存订单等业务数据
+3. **保存消息到本地表**：消息状态为 0（待发送），包含完整的消息类型和内容
+4. **提交事务**：业务数据和消息记录同时提交，保证一致性
+5. **发送消息到 MQ**：事务提交后立即尝试发送
+6. **更新消息状态**：
+   - 发送成功 → 状态更新为 1（已发送）
+   - 发送失败 → 状态保持为 0（待发送）
+7. **后台服务重试**：定期扫描状态为 0 或 2 的消息，自动重试
+
+### 消息状态说明
+
+| 状态值 | 状态名称 | 说明 |
+|--------|---------|------|
+| 0 | 待发送 | 消息已保存，等待发送或重试 |
+| 1 | 已发送 | 消息已成功发送到 MQ |
+| 2 | 发送失败 | 消息发送失败，会继续重试 |
+
+### 配置选项
+
+```csharp
+public class LocalMessageRetryOptions
+{
+    // 扫描间隔（默认：30秒）
+    public TimeSpan ScanInterval { get; set; } = TimeSpan.FromSeconds(30);
+
+    // 每次扫描的批量大小（默认：100）
+    public int BatchSize { get; set; } = 100;
+
+    // 最大重试次数（默认：5次）
+    public int MaxRetryCount { get; set; } = 5;
+
+    // 本地消息表名称（默认：LocalMessages）
+    public string TableName { get; set; } = "LocalMessages";
+
+    // 是否启用重试服务（默认：true）
+    public bool Enabled { get; set; } = true;
+
+    // 数据库连接工厂（必需）
+    public Func<IServiceProvider, IDbConnection>? DbConnectionFactory { get; set; }
+}
+```
+
+### 最佳实践
+
+1. **定期清理历史消息**
+   ```sql
+   -- 清理30天前已发送的消息
+   DELETE FROM LocalMessages 
+   WHERE Status = 1 
+   AND CreatedAt < DATEADD(DAY, -30, GETUTCDATE());
+   ```
+
+2. **监控失败消息**
+   ```sql
+   -- 查询重试次数过多的消息
+   SELECT * FROM LocalMessages 
+   WHERE Status IN (0, 2) 
+   AND RetryCount >= 5
+   ORDER BY CreatedAt DESC;
+   ```
+
+3. **设置合理的重试间隔**
+   - 高频业务：10-30秒
+   - 一般业务：30-60秒
+   - 低频业务：1-5分钟
+
+4. **实现幂等性**
+   - 消息处理器应该实现幂等性
+   - 使用消息ID或业务ID去重
+
+### 注意事项
+
+- ⚠️ 必须配置 `DbConnectionFactory` 或在 DI 容器中注册 `IDbConnection`
+- ⚠️ 消息类型使用 `AssemblyQualifiedName` 保存，确保跨程序集反序列化
+- ⚠️ 定期清理已发送的历史消息，避免表过大影响性能
+- ⚠️ 消息处理器应实现幂等性，因为消息可能被重复发送
+- ⚠️ 建议在生产环境监控失败消息数量，及时发现问题
+
+### 示例项目
+
+完整的使用示例请参考：
+- [TestApi 项目](src/Heytom.MQ.TestApi) - 包含完整的订单创建示例
+- [使用指南](LOCAL_MESSAGE_TABLE_USAGE.md) - 详细的使用文档
+- [快速开始](src/Heytom.MQ.TestApi/QUICKSTART.md) - 5分钟快速体验
 
 ## 特性
 
@@ -382,10 +664,10 @@ public interface IMessageProducer
     Task SendBatchAsync<T>(IEnumerable<T> messages, CancellationToken cancellationToken = default) where T : class, IEvent;
     
     // 在事务中发送消息到本地消息表
-    Task SendWithTransactionAsync<T>(DbContext dbContext, Func<Task<T>> messageFunc, CancellationToken cancellationToken = default) where T : class, IEvent;
+    Task SendWithTransactionAsync<T>(IDbConnection dbConnection, Func<IDbTransaction, Task<T>> messageFunc, CancellationToken cancellationToken = default) where T : class, IEvent;
     
     // 在事务中批量发送消息到本地消息表
-    Task SendBatchWithTransactionAsync<T>(DbContext dbContext, Func<Task<IEnumerable<T>>> messageFunc, CancellationToken cancellationToken = default) where T : class, IEvent;
+    Task SendBatchWithTransactionAsync<T>(IDbConnection dbConnection, Func<IDbTransaction, Task<IEnumerable<T>>> messageFunc, CancellationToken cancellationToken = default) where T : class, IEvent;
 }
 ```
 
@@ -395,16 +677,16 @@ public interface IMessageProducer
 public interface ILocalMessageRepository
 {
     // 保存消息到本地表
-    Task SaveAsync(DbContext dbContext, LocalMessage message, CancellationToken cancellationToken = default);
+    Task SaveAsync(IDbTransaction transaction, LocalMessage message, CancellationToken cancellationToken = default);
     
     // 批量保存消息
-    Task SaveBatchAsync(DbContext dbContext, IEnumerable<LocalMessage> messages, CancellationToken cancellationToken = default);
+    Task SaveBatchAsync(IDbTransaction transaction, IEnumerable<LocalMessage> messages, CancellationToken cancellationToken = default);
     
     // 更新消息状态
-    Task UpdateStatusAsync(DbContext dbContext, Guid messageId, int status, string? errorMessage = null, CancellationToken cancellationToken = default);
+    Task UpdateStatusAsync(IDbTransaction transaction, Guid messageId, int status, string? errorMessage = null, CancellationToken cancellationToken = default);
     
     // 获取待发送的消息
-    Task<List<LocalMessage>> GetPendingMessagesAsync(DbContext dbContext, int batchSize = 100, CancellationToken cancellationToken = default);
+    Task<List<LocalMessage>> GetPendingMessagesAsync(IDbConnection connection, int batchSize = 100, CancellationToken cancellationToken = default);
 }
 ```
 

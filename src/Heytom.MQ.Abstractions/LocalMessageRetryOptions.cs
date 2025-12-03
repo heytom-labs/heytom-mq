@@ -1,3 +1,5 @@
+using System.Data;
+
 namespace Heytom.MQ.Abstractions;
 
 /// <summary>
@@ -29,4 +31,10 @@ public class LocalMessageRetryOptions
     /// 是否启用重试服务（默认：true）
     /// </summary>
     public bool Enabled { get; set; } = true;
+
+    /// <summary>
+    /// 数据库连接工厂函数（用于创建 IDbConnection 实例）
+    /// 如果未设置，将尝试从 DI 容器中获取 IDbConnection
+    /// </summary>
+    public Func<IServiceProvider, IDbConnection>? DbConnectionFactory { get; set; }
 }
