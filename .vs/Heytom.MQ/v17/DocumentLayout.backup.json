@@ -3,8 +3,16 @@
   "WorkspaceRootPath": "D:\\WorkSpace\\heytom\\heytom-mq\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{A1111111-1111-1111-1111-111111111111}|src\\Heytom.MQ.Abstractions\\Heytom.MQ.Abstractions.csproj|d:\\workspace\\heytom\\heytom-mq\\src\\heytom.mq.abstractions\\localmessageretryservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A1111111-1111-1111-1111-111111111111}|src\\Heytom.MQ.Abstractions\\Heytom.MQ.Abstractions.csproj|solutionrelative:src\\heytom.mq.abstractions\\localmessageretryservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{A1111111-1111-1111-1111-111111111111}|src\\Heytom.MQ.Abstractions\\Heytom.MQ.Abstractions.csproj|d:\\workspace\\heytom\\heytom-mq\\src\\heytom.mq.abstractions\\localmessage.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{A1111111-1111-1111-1111-111111111111}|src\\Heytom.MQ.Abstractions\\Heytom.MQ.Abstractions.csproj|solutionrelative:src\\heytom.mq.abstractions\\localmessage.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A1111111-1111-1111-1111-111111111111}|src\\Heytom.MQ.Abstractions\\Heytom.MQ.Abstractions.csproj|d:\\workspace\\heytom\\heytom-mq\\src\\heytom.mq.abstractions\\localmessageretryserviceextensions.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A1111111-1111-1111-1111-111111111111}|src\\Heytom.MQ.Abstractions\\Heytom.MQ.Abstractions.csproj|solutionrelative:src\\heytom.mq.abstractions\\localmessageretryserviceextensions.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A1111111-1111-1111-1111-111111111111}|src\\Heytom.MQ.Abstractions\\Heytom.MQ.Abstractions.csproj|d:\\workspace\\heytom\\heytom-mq\\src\\heytom.mq.abstractions\\localmessagerepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -122,6 +130,32 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
+              "Title": "LocalMessageRetryService.cs",
+              "DocumentMoniker": "D:\\WorkSpace\\heytom\\heytom-mq\\src\\Heytom.MQ.Abstractions\\LocalMessageRetryService.cs",
+              "RelativeDocumentMoniker": "src\\Heytom.MQ.Abstractions\\LocalMessageRetryService.cs",
+              "ToolTip": "D:\\WorkSpace\\heytom\\heytom-mq\\src\\Heytom.MQ.Abstractions\\LocalMessageRetryService.cs",
+              "RelativeToolTip": "src\\Heytom.MQ.Abstractions\\LocalMessageRetryService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAJwAAAArAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-03T06:15:08.232Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "LocalMessageRetryServiceExtensions.cs",
+              "DocumentMoniker": "D:\\WorkSpace\\heytom\\heytom-mq\\src\\Heytom.MQ.Abstractions\\LocalMessageRetryServiceExtensions.cs",
+              "RelativeDocumentMoniker": "src\\Heytom.MQ.Abstractions\\LocalMessageRetryServiceExtensions.cs",
+              "ToolTip": "D:\\WorkSpace\\heytom\\heytom-mq\\src\\Heytom.MQ.Abstractions\\LocalMessageRetryServiceExtensions.cs",
+              "RelativeToolTip": "src\\Heytom.MQ.Abstractions\\LocalMessageRetryServiceExtensions.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-03T06:14:52.895Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
               "Title": "LocalMessage.cs",
               "DocumentMoniker": "D:\\WorkSpace\\heytom\\heytom-mq\\src\\Heytom.MQ.Abstractions\\LocalMessage.cs",
               "RelativeDocumentMoniker": "src\\Heytom.MQ.Abstractions\\LocalMessage.cs",
@@ -134,7 +168,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 4,
               "Title": "MessageContext.cs",
               "DocumentMoniker": "D:\\WorkSpace\\heytom\\heytom-mq\\src\\Heytom.MQ.Abstractions\\MessageContext.cs",
               "RelativeDocumentMoniker": "src\\Heytom.MQ.Abstractions\\MessageContext.cs",
@@ -142,12 +176,11 @@
               "RelativeToolTip": "src\\Heytom.MQ.Abstractions\\MessageContext.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-12-03T06:05:42.563Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-12-03T06:05:42.563Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 3,
               "Title": "LocalMessageRepository.cs",
               "DocumentMoniker": "D:\\WorkSpace\\heytom\\heytom-mq\\src\\Heytom.MQ.Abstractions\\LocalMessageRepository.cs",
               "RelativeDocumentMoniker": "src\\Heytom.MQ.Abstractions\\LocalMessageRepository.cs",
@@ -155,12 +188,11 @@
               "RelativeToolTip": "src\\Heytom.MQ.Abstractions\\LocalMessageRepository.cs",
               "ViewState": "AgIAAFoAAAAAAAAAAAAowAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-12-03T06:05:32.663Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-12-03T06:05:32.663Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 5,
               "Title": "RabbitMQProducer.cs",
               "DocumentMoniker": "D:\\WorkSpace\\heytom\\heytom-mq\\src\\Heytom.MQ.RabbitMQ\\RabbitMQProducer.cs",
               "RelativeDocumentMoniker": "src\\Heytom.MQ.RabbitMQ\\RabbitMQProducer.cs",
@@ -168,12 +200,11 @@
               "RelativeToolTip": "src\\Heytom.MQ.RabbitMQ\\RabbitMQProducer.cs",
               "ViewState": "AgIAAAMAAAAAAAAAAAAswIcAAABIAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-12-03T05:56:32.702Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-12-03T05:56:32.702Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 6,
               "Title": "IMessageProducer.cs",
               "DocumentMoniker": "D:\\WorkSpace\\heytom\\heytom-mq\\src\\Heytom.MQ.Abstractions\\IMessageProducer.cs",
               "RelativeDocumentMoniker": "src\\Heytom.MQ.Abstractions\\IMessageProducer.cs",
@@ -181,12 +212,11 @@
               "RelativeToolTip": "src\\Heytom.MQ.Abstractions\\IMessageProducer.cs",
               "ViewState": "AgIAAAYAAAAAAAAAAAAAAAcAAAAhAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-12-03T05:50:13.524Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-12-03T05:50:13.524Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 8,
               "Title": "KafkaConsumer.cs",
               "DocumentMoniker": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.Kafka\\KafkaConsumer.cs",
               "ToolTip": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.Kafka\\KafkaConsumer.cs",
@@ -195,7 +225,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 9,
               "Title": "NotificationEvent.cs",
               "DocumentMoniker": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.TestApi\\Events\\NotificationEvent.cs",
               "ToolTip": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.TestApi\\Events\\NotificationEvent.cs",
@@ -204,7 +234,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
+              "DocumentIndex": 10,
               "Title": "ProductCreatedEventHandler.cs",
               "DocumentMoniker": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.TestApi\\Handlers\\ProductCreatedEventHandler.cs",
               "ToolTip": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.TestApi\\Handlers\\ProductCreatedEventHandler.cs",
@@ -213,7 +243,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 9,
+              "DocumentIndex": 11,
               "Title": "ProductCreatedEvent.cs",
               "DocumentMoniker": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.TestApi\\Events\\ProductCreatedEvent.cs",
               "ToolTip": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.TestApi\\Events\\ProductCreatedEvent.cs",
@@ -222,7 +252,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 7,
               "Title": "ServiceCollectionExtensions.cs",
               "DocumentMoniker": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.DependencyInjection\\ServiceCollectionExtensions.cs",
               "ToolTip": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.DependencyInjection\\ServiceCollectionExtensions.cs",
@@ -231,7 +261,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 10,
+              "DocumentIndex": 12,
               "Title": "RabbitMQHostedService.cs",
               "DocumentMoniker": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.DependencyInjection\\RabbitMQHostedService.cs",
               "ToolTip": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.DependencyInjection\\RabbitMQHostedService.cs",
@@ -240,7 +270,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 11,
+              "DocumentIndex": 13,
               "Title": "KafkaHostedService.cs",
               "DocumentMoniker": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.DependencyInjection\\KafkaHostedService.cs",
               "ToolTip": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.DependencyInjection\\KafkaHostedService.cs",
@@ -249,7 +279,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 12,
+              "DocumentIndex": 14,
               "Title": "EventHandlerRegistration.cs",
               "DocumentMoniker": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.DependencyInjection\\EventHandlerRegistration.cs",
               "ToolTip": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.DependencyInjection\\EventHandlerRegistration.cs",
@@ -258,7 +288,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 13,
+              "DocumentIndex": 15,
               "Title": "RabbitMQConsumer.cs",
               "DocumentMoniker": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.RabbitMQ\\RabbitMQConsumer.cs",
               "ToolTip": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.RabbitMQ\\RabbitMQConsumer.cs",
@@ -267,7 +297,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 14,
+              "DocumentIndex": 16,
               "Title": "OrderCreatedEvent.cs",
               "DocumentMoniker": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.TestApi\\Events\\OrderCreatedEvent.cs",
               "ToolTip": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.TestApi\\Events\\OrderCreatedEvent.cs",
@@ -276,7 +306,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 15,
+              "DocumentIndex": 17,
               "Title": "UserCreatedEventHandler.cs",
               "DocumentMoniker": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.TestApi\\Handlers\\UserCreatedEventHandler.cs",
               "ToolTip": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.TestApi\\Handlers\\UserCreatedEventHandler.cs",
@@ -285,7 +315,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 16,
+              "DocumentIndex": 18,
               "Title": "MessageController.cs",
               "DocumentMoniker": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.TestApi\\Controllers\\MessageController.cs",
               "ToolTip": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.TestApi\\Controllers\\MessageController.cs",
@@ -294,7 +324,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 17,
+              "DocumentIndex": 19,
               "Title": "Program.cs",
               "DocumentMoniker": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.TestApi\\Program.cs",
               "ToolTip": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.TestApi\\Program.cs",
@@ -303,7 +333,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 18,
+              "DocumentIndex": 20,
               "Title": "KafkaProducer.cs",
               "DocumentMoniker": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.Kafka\\KafkaProducer.cs",
               "ToolTip": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.Kafka\\KafkaProducer.cs",
@@ -312,7 +342,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 19,
+              "DocumentIndex": 21,
               "Title": "RabbitMQProducer.cs",
               "DocumentMoniker": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.RabbitMQ\\RabbitMQProducer.cs",
               "ToolTip": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.RabbitMQ\\RabbitMQProducer.cs",
@@ -321,7 +351,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 20,
+              "DocumentIndex": 22,
               "Title": "KafkaTopicHelper.cs",
               "DocumentMoniker": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.Kafka\\KafkaTopicHelper.cs",
               "ToolTip": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.Kafka\\KafkaTopicHelper.cs",
@@ -330,7 +360,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 21,
+              "DocumentIndex": 23,
               "Title": "OrderCreatedEventHandler.cs",
               "DocumentMoniker": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.TestApi\\Handlers\\OrderCreatedEventHandler.cs",
               "ToolTip": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.TestApi\\Handlers\\OrderCreatedEventHandler.cs",
@@ -339,7 +369,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 22,
+              "DocumentIndex": 24,
               "Title": "appsettings.json",
               "DocumentMoniker": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.TestApi\\appsettings.json",
               "ToolTip": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.TestApi\\appsettings.json",
@@ -348,7 +378,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 23,
+              "DocumentIndex": 25,
               "Title": "RabbitMQTopicHelper.cs",
               "DocumentMoniker": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.RabbitMQ\\RabbitMQTopicHelper.cs",
               "ToolTip": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.RabbitMQ\\RabbitMQTopicHelper.cs",
@@ -357,7 +387,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 24,
+              "DocumentIndex": 26,
               "Title": "RabbitMQTopicAttribute.cs",
               "DocumentMoniker": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.RabbitMQ\\RabbitMQTopicAttribute.cs",
               "ToolTip": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.RabbitMQ\\RabbitMQTopicAttribute.cs",
@@ -366,7 +396,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 25,
+              "DocumentIndex": 27,
               "Title": "appsettings.Development.json",
               "DocumentMoniker": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.TestApi\\appsettings.Development.json",
               "ToolTip": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.TestApi\\appsettings.Development.json",
@@ -375,7 +405,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 26,
+              "DocumentIndex": 28,
               "Title": "IMessageConsumer.cs",
               "DocumentMoniker": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.Abstractions\\IMessageConsumer.cs",
               "ToolTip": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.Abstractions\\IMessageConsumer.cs",
@@ -384,7 +414,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 27,
+              "DocumentIndex": 29,
               "Title": "IEventHandler.cs",
               "DocumentMoniker": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.Abstractions\\IEventHandler.cs",
               "ToolTip": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.Abstractions\\IEventHandler.cs",
@@ -393,7 +423,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 28,
+              "DocumentIndex": 30,
               "Title": "UserCreatedEvent.cs",
               "DocumentMoniker": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.TestApi\\Events\\UserCreatedEvent.cs",
               "ToolTip": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.TestApi\\Events\\UserCreatedEvent.cs",
@@ -402,7 +432,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 29,
+              "DocumentIndex": 31,
               "Title": "MQOptions.cs",
               "DocumentMoniker": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.Abstractions\\MQOptions.cs",
               "ToolTip": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.Abstractions\\MQOptions.cs",
@@ -411,7 +441,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 30,
+              "DocumentIndex": 32,
               "Title": "MessageContext.cs",
               "DocumentMoniker": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.Abstractions\\MessageContext.cs",
               "ToolTip": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.Abstractions\\MessageContext.cs",
@@ -420,7 +450,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 31,
+              "DocumentIndex": 33,
               "Title": "IMessageProducer.cs",
               "DocumentMoniker": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.Abstractions\\IMessageProducer.cs",
               "ToolTip": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.Abstractions\\IMessageProducer.cs",
@@ -429,7 +459,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 32,
+              "DocumentIndex": 34,
               "Title": "IEvent.cs",
               "DocumentMoniker": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.Abstractions\\IEvent.cs",
               "ToolTip": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.Abstractions\\IEvent.cs",
@@ -438,7 +468,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 33,
+              "DocumentIndex": 35,
               "Title": "EventBase.cs",
               "DocumentMoniker": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.Abstractions\\EventBase.cs",
               "ToolTip": "C:\\Users\\Public\\WorkSpace\\heytom-labs\\heytom-mq\\Heytom.MQ.Abstractions\\EventBase.cs",
