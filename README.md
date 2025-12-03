@@ -267,20 +267,155 @@ await consumer.SubscribeAsync<UserCreatedEvent>(async (message) =>
 await consumer.SubscribeAsync<UserCreatedEvent, UserCreatedEventHandler>();
 ```
 
+## 本地消息表（事务性消息）
+
+框架支持本地消息表功能，确保业务操作和消息发送的事务一致性。消息会先保存到本地数据库，然后异步发送到消息队列。
+
+### 快速开始
+
+**1. 创建本地消息表**
+
+执行 SQL 脚本（位于 `src/Heytom.MQ.Abstractions/LocalMessageTable.sql`）：
+
+```sql
+CREATE TABLE LocalMessages (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    MQType NVARCHAR(50) NOT NULL,
+    Topic NVARCHAR(200) NOT NULL,
+    RoutingKey NVARCHAR(200) NULL,
+    MessageType NVARCHAR(500) NOT NULL,
+    MessageBody NVARCHAR(MAX) NOT NULL,
+    Status INT NOT NULL DEFAULT 0,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME2 NULL,
+    RetryCount INT NOT NULL DEFAULT 0,
+    ErrorMessage NVARCHAR(MAX) NULL
+);
+
+CREATE INDEX IX_LocalMessages_Status_CreatedAt ON LocalMessages(Status, CreatedAt);
+```
+
+**2. 配置自定义表名（可选）**
+
+```csharp
+builder.Services.AddRabbitMQ(options =>
+{
+    options.ConnectionString = "amqp://localhost";
+    options.Exchange = "my-exchange";
+    options.LocalMessageTableName = "MyCustomMessageTable";  // 自定义表名
+});
+```
+
+**3. 使用事务发送消息**
+
+```csharp
+public class OrderService
+{
+    private readonly ApplicationDbContext _dbContext;
+    private readonly IMessageProducer _producer;
+
+    public async Task CreateOrderAsync(CreateOrderRequest request)
+    {
+        // 在事务中发送消息
+        await _producer.SendWithTransactionAsync(_dbContext, async () =>
+        {
+            // 执行业务逻辑
+            var order = new Order
+            {
+                Id = Guid.NewGuid(),
+                CustomerId = request.CustomerId,
+                Amount = request.Amount
+            };
+            
+            _dbContext.Orders.Add(order);
+            await _dbContext.SaveChangesAsync();
+            
+            // 返回要发送的消息
+            return new OrderCreatedEvent
+            {
+                OrderId = order.Id,
+                Amount = order.Amount
+            };
+        });
+    }
+}
+```
+
+**工作流程：**
+1. 开启数据库事务
+2. 执行业务逻辑（如保存订单）
+3. 保存消息到本地消息表
+4. 提交事务（确保业务数据和消息记录一致性）
+5. 发送消息到 MQ
+6. 如果发送失败，消息已在本地表中，可通过重试机制处理
+
+**详细文档：**
+- [使用指南](LOCAL_MESSAGE_TABLE_USAGE.md)
+- [架构说明](LOCAL_MESSAGE_TABLE_ARCHITECTURE.md)
+
 ## 特性
 
 - 统一的抽象接口，方便切换不同的 MQ 实现
 - 支持异步操作
 - 支持批量发送
 - 支持消息重试机制
+- **支持本地消息表（事务性消息）**
+- **使用原生 SQL 操作，性能更高**
+- **支持自定义表名**
 - 类型安全的消息处理
 - 自动序列化/反序列化（JSON）
 - 依赖注入支持，自动注册和启动消费者
 - 支持批量扫描注册事件处理器
 - 后台服务自动管理消费者生命周期
 
+## API 参考
+
+### IMessageProducer 接口
+
+```csharp
+public interface IMessageProducer
+{
+    // 发送单条消息
+    Task SendAsync<T>(T message, CancellationToken cancellationToken = default) where T : class, IEvent;
+    
+    // 批量发送消息
+    Task SendBatchAsync<T>(IEnumerable<T> messages, CancellationToken cancellationToken = default) where T : class, IEvent;
+    
+    // 在事务中发送消息到本地消息表
+    Task SendWithTransactionAsync<T>(DbContext dbContext, Func<Task<T>> messageFunc, CancellationToken cancellationToken = default) where T : class, IEvent;
+    
+    // 在事务中批量发送消息到本地消息表
+    Task SendBatchWithTransactionAsync<T>(DbContext dbContext, Func<Task<IEnumerable<T>>> messageFunc, CancellationToken cancellationToken = default) where T : class, IEvent;
+}
+```
+
+### ILocalMessageRepository 接口
+
+```csharp
+public interface ILocalMessageRepository
+{
+    // 保存消息到本地表
+    Task SaveAsync(DbContext dbContext, LocalMessage message, CancellationToken cancellationToken = default);
+    
+    // 批量保存消息
+    Task SaveBatchAsync(DbContext dbContext, IEnumerable<LocalMessage> messages, CancellationToken cancellationToken = default);
+    
+    // 更新消息状态
+    Task UpdateStatusAsync(DbContext dbContext, Guid messageId, int status, string? errorMessage = null, CancellationToken cancellationToken = default);
+    
+    // 获取待发送的消息
+    Task<List<LocalMessage>> GetPendingMessagesAsync(DbContext dbContext, int batchSize = 100, CancellationToken cancellationToken = default);
+}
+```
+
 ## 依赖
 
 - .NET 8.0
 - RabbitMQ.Client 6.8.1
 - Confluent.Kafka 2.3.0
+- Microsoft.EntityFrameworkCore 8.0.22
+- Microsoft.EntityFrameworkCore.Relational 8.0.22
+
+## 许可证
+
+MIT License
